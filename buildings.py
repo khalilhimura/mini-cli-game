@@ -11,6 +11,7 @@ class Mine(Building):
 class SolarPanel(Building):
     def __init__(self):
         super().__init__(name="Solar Panel", cost={"Minerals": 30, "Energy": 20})
+<<<<<<< HEAD
         self.production_bonus = {"Energy": 3} # Interpreted as per second by game.py
 
 class HydroponicsFarm(Building):
@@ -22,3 +23,6 @@ class ResearchLab(Building):
     def __init__(self):
         super().__init__(name="Research Lab", cost={"Minerals": 100.0, "Energy": 50.0})
         self.production_bonus = {"ResearchPoints": 0.5} # Research Points per second
+=======
+        self.production_bonus = {"Energy": 3}
+>>>>>>> 6cf4cbe (Initial version of the Space Colony CLI game.)
