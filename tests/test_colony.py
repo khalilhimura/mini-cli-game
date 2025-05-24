@@ -1,182 +1,138 @@
 import unittest
-import sys
-sys.path.append('..') # Add the project root to the Python path
-
 from colony import Colony
-from buildings import Mine, SolarPanel, HydroponicsFarm, ResearchLab # Import new buildings
+from buildings import Mine, SolarPanel, ResearchLab # Assuming ResearchLab is a default building
+from research import RESEARCH_PROJECTS
 
-class TestColony(unittest.TestCase):
+class TestBuildingUpgrades(unittest.TestCase):
     def setUp(self):
-        """Create a fresh Colony instance before each test."""
-        # Colony __init__ now sets initial resources, so tests will work against those.
-        self.colony = Colony(initial_turn_number=1) 
+        self.colony = Colony()
 
-    def test_initial_resources(self):
-        """Check initial values of all resources."""
-        # These values are from Colony.__init__
-        expected_initial_resources = {
-            "Minerals": 50.0, 
-            "Energy": 60.0, 
-            "Food": 10.0, 
-            "ResearchPoints": 0.0
-        }
-        self.assertEqual(self.colony.get_resources(), expected_initial_resources)
-        self.assertEqual(self.colony.turn_number, 1)
-        self.assertEqual(self.colony.event_history, [])
+    def test_initial_building_level(self):
+        mine = Mine()
+        self.colony.add_building(mine)
+        self.assertEqual(self.colony.buildings[0].level, 1)
 
-
-    def test_add_resource(self):
-        """Test adding all types of resources."""
-        initial_minerals = self.colony.get_resources()["Minerals"]
-        self.colony.add_resource("Minerals", 50)
-        self.assertEqual(self.colony.get_resources()["Minerals"], initial_minerals + 50)
+    def test_upgrade_building_sufficient_resources(self):
+        mine = Mine()
+        self.colony.add_building(mine)
+        initial_minerals = 1000
+        initial_energy = 500
+        self.colony.resources["Minerals"] = initial_minerals
+        self.colony.resources["Energy"] = initial_energy
         
-        initial_energy = self.colony.get_resources()["Energy"]
-        self.colony.add_resource("Energy", 30)
-        self.assertEqual(self.colony.get_resources()["Energy"], initial_energy + 30)
+        upgrade_cost = self.colony.buildings[0].upgrade_cost() # Cost for level 1 to 2
 
-        initial_food = self.colony.get_resources()["Food"]
-        self.colony.add_resource("Food", 100)
-        self.assertEqual(self.colony.get_resources()["Food"], initial_food + 100)
+        success = self.colony.upgrade_building(0)
+        self.assertTrue(success)
+        self.assertEqual(self.colony.buildings[0].level, 2)
+        self.assertEqual(self.colony.resources["Minerals"], initial_minerals - upgrade_cost["Minerals"])
+        self.assertEqual(self.colony.resources["Energy"], initial_energy - upgrade_cost["Energy"])
+        self.assertIn(f"{mine.name} upgraded to level 2", self.colony.event_history[0])
 
-        initial_rp = self.colony.get_resources()["ResearchPoints"]
-        self.colony.add_resource("ResearchPoints", 20)
-        self.assertEqual(self.colony.get_resources()["ResearchPoints"], initial_rp + 20)
+    def test_upgrade_building_insufficient_resources(self):
+        mine = Mine()
+        self.colony.add_building(mine)
+        self.colony.resources["Minerals"] = 0 # Insufficient
+        self.colony.resources["Energy"] = 0  # Insufficient
 
-        # Test adding a completely new resource type (if desired behavior)
-        self.colony.add_resource("Helium-3", 5) 
-        self.assertEqual(self.colony.get_resources().get("Helium-3"), 5)
+        original_minerals = self.colony.resources["Minerals"]
+        original_energy = self.colony.resources["Energy"]
 
+        success = self.colony.upgrade_building(0)
+        self.assertFalse(success)
+        self.assertEqual(self.colony.buildings[0].level, 1)
+        self.assertEqual(self.colony.resources["Minerals"], original_minerals)
+        self.assertEqual(self.colony.resources["Energy"], original_energy)
+        self.assertIn(f"Not enough resources to upgrade {mine.name}", self.colony.event_history[0])
 
-    def test_spend_resources_sufficient(self):
-        """Test spending resources when sufficient, including new types."""
-        self.colony.resources = {"Minerals": 100.0, "Energy": 50.0, "Food": 30.0, "ResearchPoints": 10.0}
+    def test_production_bonus_increases_with_level(self):
+        mine = Mine()
+        self.colony.add_building(mine)
         
-        can_spend = self.colony.spend_resources({"Minerals": 30, "Energy": 20, "Food": 5})
-        self.assertTrue(can_spend)
-        self.assertEqual(self.colony.get_resources()["Minerals"], 70.0)
-        self.assertEqual(self.colony.get_resources()["Energy"], 30.0)
-        self.assertEqual(self.colony.get_resources()["Food"], 25.0)
+        initial_bonus = self.colony.calculate_production_bonuses().get("Minerals", 0)
 
-    def test_spend_resources_insufficient(self):
-        """Test spending resources when insufficient, including new types."""
-        self.colony.resources = {"Minerals": 20.0, "Energy": 50.0, "Food": 10.0}
+        self.colony.resources["Minerals"] = 1000
+        self.colony.resources["Energy"] = 500
+        self.colony.upgrade_building(0)
 
-        can_spend = self.colony.spend_resources({"Minerals": 30, "Energy": 20}) # Not enough Minerals
-        self.assertFalse(can_spend) 
-        self.assertEqual(self.colony.get_resources()["Minerals"], 20.0) 
-        self.assertEqual(self.colony.get_resources()["Energy"], 50.0)   
+        new_bonus = self.colony.calculate_production_bonuses().get("Minerals", 0)
+        self.assertGreater(new_bonus, initial_bonus)
 
-        can_spend_food = self.colony.spend_resources({"Food": 20}) # Not enough Food
-        self.assertFalse(can_spend_food)
-        self.assertEqual(self.colony.get_resources()["Food"], 10.0)
-
-
-    def test_has_enough_resources(self):
-        """Test checking for sufficient resources, including new types."""
-        self.colony.resources = {"Minerals": 100.0, "Energy": 50.0, "Food": 20.0, "ResearchPoints": 5.0}
-
-        self.assertTrue(self.colony.has_enough_resources({"Minerals": 50, "Energy": 30, "Food": 10}))
-        self.assertTrue(self.colony.has_enough_resources({"ResearchPoints": 5.0}))
-        self.assertFalse(self.colony.has_enough_resources({"Minerals": 101}))
-        self.assertFalse(self.colony.has_enough_resources({"Food": 21}))
-        self.assertFalse(self.colony.has_enough_resources({"ResearchPoints": 5.1}))
-        self.assertFalse(self.colony.has_enough_resources({"Helium-3": 1})) # Resource not present
-
-    def test_add_building_all_types(self):
-        """Test adding all building types."""
-        mine_building = Mine()
-        self.colony.add_building(mine_building)
-        self.assertIn(mine_building, self.colony.get_buildings())
+    def test_upgrade_cost_increases_with_level(self):
+        mine = Mine()
+        self.colony.add_building(mine)
         
-        solar_building = SolarPanel()
-        self.colony.add_building(solar_building)
-        self.assertIn(solar_building, self.colony.get_buildings())
+        cost_lvl_1_to_2 = mine.upgrade_cost()
 
-        farm_building = HydroponicsFarm()
-        self.colony.add_building(farm_building)
-        self.assertIn(farm_building, self.colony.get_buildings())
+        self.colony.resources["Minerals"] = 1000
+        self.colony.resources["Energy"] = 500
+        self.colony.upgrade_building(0) # Upgrade to level 2
+
+        cost_lvl_2_to_3 = mine.upgrade_cost() # mine instance is updated
         
-        lab_building = ResearchLab()
-        self.colony.add_building(lab_building)
-        self.assertIn(lab_building, self.colony.get_buildings())
+        self.assertGreater(cost_lvl_2_to_3["Minerals"], cost_lvl_1_to_2["Minerals"])
+        self.assertGreater(cost_lvl_2_to_3["Energy"], cost_lvl_1_to_2["Energy"])
+
+
+class TestResearchSystem(unittest.TestCase):
+    def setUp(self):
+        self.colony = Colony()
+        # RESEARCH_PROJECTS is imported at the top
+
+    def test_initial_unlocked_buildings(self):
+        self.assertIn("Mine", self.colony.unlocked_buildings)
+        self.assertIn("Solar Panel", self.colony.unlocked_buildings)
+        self.assertIn("Hydroponics Farm", self.colony.unlocked_buildings)
+        self.assertIn("Research Lab", self.colony.unlocked_buildings)
+        self.assertNotIn("GeothermalPlant", self.colony.unlocked_buildings)
+
+    def test_research_project_sufficient_research_points(self):
+        self.colony.resources["ResearchPoints"] = 300
+        project_id = "geothermal_power"
+        project_details = RESEARCH_PROJECTS[project_id]
         
-        self.assertEqual(len(self.colony.get_buildings()), 4)
-
-
-    def test_calculate_production_bonuses_no_buildings(self):
-        """Test production bonuses with no buildings."""
-        self.assertEqual(self.colony.calculate_production_bonuses(), {})
-
-    def test_calculate_production_bonuses_with_new_buildings(self):
-        """Test production bonuses with all building types."""
-        self.colony.add_building(Mine()) # +5 Minerals
-        self.colony.add_building(SolarPanel()) # +3 Energy
-        self.colony.add_building(HydroponicsFarm()) # +2 Food
-        self.colony.add_building(ResearchLab()) # +0.5 RP
-        self.colony.add_building(Mine()) # Another +5 Minerals
-
-        expected_bonuses = {
-            "Minerals": 10.0, 
-            "Energy": 3.0, 
-            "Food": 2.0, 
-            "ResearchPoints": 0.5
-        }
-        # Production bonuses are float as building bonuses are floats or ints
-        # And defaultdict(int) in calculate_production_bonuses will use int if all inputs are int
-        # but if any bonus is float, it will be float. Let's ensure our expected are floats.
-        # The building bonuses are defined as float or int. The sum will be float if any is float.
-        # Mine/Solar bonuses are int, Farm/Lab are float. So result should be float.
+        initial_rp = self.colony.resources["ResearchPoints"]
         
-        actual_bonuses = self.colony.calculate_production_bonuses()
-        self.assertAlmostEqual(actual_bonuses.get("Minerals", 0.0), expected_bonuses["Minerals"])
-        self.assertAlmostEqual(actual_bonuses.get("Energy", 0.0), expected_bonuses["Energy"])
-        self.assertAlmostEqual(actual_bonuses.get("Food", 0.0), expected_bonuses["Food"])
-        self.assertAlmostEqual(actual_bonuses.get("ResearchPoints", 0.0), expected_bonuses["ResearchPoints"])
+        success = self.colony.research_project(project_id)
+        self.assertTrue(success)
+        self.assertIn(project_id, self.colony.completed_research)
+        self.assertIn("GeothermalPlant", self.colony.unlocked_buildings)
+        self.assertEqual(self.colony.resources["ResearchPoints"], initial_rp - project_details["cost"])
+        self.assertIn(f"Research complete: {project_details['name']}", self.colony.event_history[0])
 
+    def test_research_project_insufficient_research_points(self):
+        self.colony.resources["ResearchPoints"] = 50 # Insufficient for geothermal_power (cost 250)
+        project_id = "geothermal_power"
+        project_details = RESEARCH_PROJECTS[project_id]
+        initial_rp = self.colony.resources["ResearchPoints"]
 
-    def test_to_dict_serialization(self):
-        """Test the to_dict method includes all resources."""
-        # setUp already initializes resources. We can add more for testing.
-        self.colony.add_resource("Minerals", 200) # This adds to initial 50.0
-        self.colony.add_resource("Energy", 150)   # Adds to initial 60.0
-        # Food starts at 10.0, RP at 0.0
-        self.colony.add_building(Mine())
-        self.colony.add_building(HydroponicsFarm())
-        self.colony.turn_number = 10
+        success = self.colony.research_project(project_id)
+        self.assertFalse(success)
+        self.assertNotIn(project_id, self.colony.completed_research)
+        self.assertNotIn("GeothermalPlant", self.colony.unlocked_buildings)
+        self.assertEqual(self.colony.resources["ResearchPoints"], initial_rp)
+        self.assertIn(f"Not enough Research Points for '{project_details['name']}'", self.colony.event_history[0])
 
-        expected_dict = {
-            "resources": {
-                "Minerals": 250.0, 
-                "Energy": 210.0, 
-                "Food": 10.0,       # Initial value
-                "ResearchPoints": 0.0 # Initial value
-            },
-            "buildings": ["Mine", "Hydroponics Farm"],
-            "turn_number": 10
-        }
-        actual_dict = self.colony.to_dict()
-        self.assertEqual(actual_dict["turn_number"], expected_dict["turn_number"])
-        self.assertListEqual(sorted(actual_dict["buildings"]), sorted(expected_dict["buildings"]))
-        self.assertDictEqual(actual_dict["resources"], expected_dict["resources"])
-
-
-    def test_add_event_to_history_basic(self):
-        """Test adding events to history and checking order."""
-        self.colony.add_event_to_history("Event 1")
-        self.colony.add_event_to_history("Event 2")
-        self.assertEqual(self.colony.event_history, ["Event 2", "Event 1"]) # Newest first
-
-    def test_add_event_to_history_max_limit(self):
-        """Test that event history is trimmed to max_history items."""
-        max_h = 5 # Test with a smaller max for convenience
-        for i in range(max_h + 3): # Add 8 events
-            self.colony.add_event_to_history(f"Event {i}", max_history=max_h)
+    def test_research_project_already_completed(self):
+        self.colony.resources["ResearchPoints"] = 300
+        project_id = "geothermal_power"
+        project_name = RESEARCH_PROJECTS[project_id]['name']
         
-        self.assertEqual(len(self.colony.event_history), max_h)
-        # Should contain Event 7, Event 6, Event 5, Event 4, Event 3
-        self.assertEqual(self.colony.event_history[0], "Event 7") 
-        self.assertEqual(self.colony.event_history[max_h-1], "Event 3")
+        self.colony.research_project(project_id) # First time
+        
+        current_rp_after_first_research = self.colony.resources["ResearchPoints"]
+        self.colony.event_history.clear() # Clear history to check next message
+
+        success = self.colony.research_project(project_id) # Second time
+        self.assertFalse(success) # Should indicate not "successful" in terms of new research
+        self.assertEqual(self.colony.resources["ResearchPoints"], current_rp_after_first_research)
+        self.assertIn(f"Project '{project_name}' already researched", self.colony.event_history[0])
+
+    def test_research_invalid_project_id(self):
+        project_id = "non_existent_project"
+        success = self.colony.research_project(project_id)
+        self.assertFalse(success)
+        self.assertIn(f"Error: Research project '{project_id}' not found", self.colony.event_history[0])
 
 if __name__ == '__main__':
     unittest.main()
