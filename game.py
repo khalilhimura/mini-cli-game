@@ -2,7 +2,7 @@ import json
 import os # For checking file existence
 import random # For event triggering
 from colony import Colony
-from buildings import Mine, SolarPanel, HydroponicsFarm, ResearchLab
+from buildings import Mine, SolarPanel, HydroponicsFarm, ResearchLab, GeothermalPlant # Added GeothermalPlant
 from events import Event, MinorResourceBoost, SmallResourceDrain, ProductionSpike, MeteorStrikeWarning
 
 # Base per-second production rates
@@ -15,8 +15,9 @@ BASE_RESEARCH_PER_SECOND = 0.0
 BUILDING_CLASSES = {
     "Mine": Mine,
     "Solar Panel": SolarPanel,
-    "Hydroponics Farm": HydroponicsFarm, # Corrected key name
-    "Research Lab": ResearchLab     # Corrected key name
+    "Hydroponics Farm": HydroponicsFarm,
+    "Research Lab": ResearchLab,
+    "GeothermalPlant": GeothermalPlant # Added GeothermalPlant
 }
 
 def build_structure(colony_instance, building_class):
@@ -185,17 +186,36 @@ def load_game(filename="savegame.json"):
         new_colony.resources["ResearchPoints"] = float(saved_resources.get("ResearchPoints", 0.0))
         
         # Reconstruct buildings
-        building_names = data.get("buildings", [])
-        for name in building_names:
+        buildings_data = data.get("buildings", []) # Expects a list of dicts
+        for building_data in buildings_data:
+            if isinstance(building_data, dict): # New format: {"name": "Mine", "level": 1}
+                name = building_data.get("name")
+                level = building_data.get("level", 1)
+            else: # Old format: "Mine" (string) - for backward compatibility if needed
+                name = building_data 
+                level = 1 # Default level for old save format
+
             building_class = BUILDING_CLASSES.get(name)
             if building_class:
-                # Create a new instance of the building
-                building_instance = building_class() 
-                new_colony.add_building(building_instance) # Use add_building for consistency
+                building_instance = building_class()
+                building_instance.level = level # Set the loaded level
+                new_colony.add_building(building_instance)
             else:
-                print(f"Warning: Building class for '{name}' not found. Skipping.")
+                # print(f"Warning: Building class for '{name}' not found during load. Skipping.") # CLI
+                # For curses, this kind of warning might be logged differently or ignored for cleaner UI
+                pass # Silently skip for now, or log to a file/internal game log
         
-        print(f"Game loaded successfully from {filename}.")
+        # Load research data
+        new_colony.completed_research = set(data.get("completed_research", []))
+        # Default for unlocked_buildings should match Colony.__init__ if key is missing
+        default_unlocked_buildings = {"Mine", "Solar Panel", "Hydroponics Farm", "Research Lab"}
+        new_colony.unlocked_buildings = set(data.get("unlocked_buildings", list(default_unlocked_buildings)))
+        
+        # Load event history
+        new_colony.event_history = data.get("event_history", [])
+
+
+        # print(f"Game loaded successfully from {filename}.") # CLI
         return new_colony
     except IOError as e:
         print(f"Error loading game (IOError): {e}")
