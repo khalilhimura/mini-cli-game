@@ -58,6 +58,18 @@ class TestGameLoadSave(unittest.TestCase):
         self.assertIsInstance(loaded_colony.buildings[0], Mine)
         self.assertEqual(loaded_colony.buildings[0].level, target_level, "Building level not saved/loaded correctly.")
 
+    def test_save_load_geothermal_plant(self):
+        colony = Colony()
+        gp = GeothermalPlant()
+        colony.add_building(gp)
+
+        save_game(colony, self.save_filename)
+        loaded_colony = load_game(self.save_filename)
+
+        self.assertIsNotNone(loaded_colony)
+        self.assertEqual(len(loaded_colony.buildings), 1)
+        self.assertIsInstance(loaded_colony.buildings[0], GeothermalPlant)
+
     def test_save_load_research_state(self):
         colony = Colony()
         initial_rp = 500

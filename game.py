@@ -196,14 +196,21 @@ def load_game(filename="savegame.json"):
                 level = 1 # Default level for old save format
 
             building_class = BUILDING_CLASSES.get(name)
+            if not building_class:
+                # Support loading buildings saved with display names that don't
+                # match the dictionary keys (e.g. "Geothermal Plant" vs
+                # "GeothermalPlant").
+                normalized_name = name.replace(" ", "") if isinstance(name, str) else name
+                building_class = BUILDING_CLASSES.get(normalized_name)
+
             if building_class:
                 building_instance = building_class()
-                building_instance.level = level # Set the loaded level
+                building_instance.level = level  # Set the loaded level
                 new_colony.add_building(building_instance)
             else:
-                # print(f"Warning: Building class for '{name}' not found during load. Skipping.") # CLI
-                # For curses, this kind of warning might be logged differently or ignored for cleaner UI
-                pass # Silently skip for now, or log to a file/internal game log
+                # Silently skip unknown building types. In a full game we might
+                # want to log this for debugging.
+                pass
         
         # Load research data
         new_colony.completed_research = set(data.get("completed_research", []))
