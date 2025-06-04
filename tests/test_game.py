@@ -3,7 +3,7 @@ import os
 import json
 from colony import Colony
 from game import save_game, load_game, BUILDING_CLASSES
-from buildings import Mine, GeothermalPlant # For testing specific building instances
+from buildings import Mine, GeothermalPlant  # For testing specific building instances
 from research import RESEARCH_PROJECTS
 
 class TestGameLoadSave(unittest.TestCase):
@@ -63,12 +63,18 @@ class TestGameLoadSave(unittest.TestCase):
         gp = GeothermalPlant()
         colony.add_building(gp)
 
+        colony.resources["Minerals"] = 1000
+        colony.resources["Energy"] = 1000
+        colony.upgrade_building(0)
+        target_level = 2
+
         save_game(colony, self.save_filename)
         loaded_colony = load_game(self.save_filename)
 
         self.assertIsNotNone(loaded_colony)
         self.assertEqual(len(loaded_colony.buildings), 1)
         self.assertIsInstance(loaded_colony.buildings[0], GeothermalPlant)
+        self.assertEqual(loaded_colony.buildings[0].level, target_level)
 
     def test_save_load_research_state(self):
         colony = Colony()
@@ -81,7 +87,7 @@ class TestGameLoadSave(unittest.TestCase):
         colony.research_project(project_to_research_id)
         
         self.assertIn(project_to_research_id, colony.completed_research)
-        self.assertIn("GeothermalPlant", colony.unlocked_buildings)
+        self.assertIn("Geothermal Plant", colony.unlocked_buildings)
         expected_rp_after_research = initial_rp - project_cost
         self.assertAlmostEqual(colony.resources["ResearchPoints"], expected_rp_after_research)
 
@@ -90,7 +96,7 @@ class TestGameLoadSave(unittest.TestCase):
 
         self.assertIsNotNone(loaded_colony)
         self.assertIn(project_to_research_id, loaded_colony.completed_research, "Completed research not saved/loaded.")
-        self.assertIn("GeothermalPlant", loaded_colony.unlocked_buildings, "Unlocked buildings not saved/loaded.")
+        self.assertIn("Geothermal Plant", loaded_colony.unlocked_buildings, "Unlocked buildings not saved/loaded.")
         self.assertAlmostEqual(loaded_colony.resources["ResearchPoints"], expected_rp_after_research, "ResearchPoints not saved/loaded correctly.")
 
     def test_load_game_file_not_found(self):
