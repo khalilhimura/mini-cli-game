@@ -11,13 +11,14 @@ BASE_ENERGY_PER_SECOND = 1.0
 BASE_FOOD_PER_SECOND = 0.2
 BASE_RESEARCH_PER_SECOND = 0.0
 
-# Mapping building names to their classes for reconstruction
+# Mapping of building identifier strings (as stored in save files)
+# to their corresponding classes for reconstruction.
 BUILDING_CLASSES = {
     "Mine": Mine,
     "Solar Panel": SolarPanel,
     "Hydroponics Farm": HydroponicsFarm,
     "Research Lab": ResearchLab,
-    "GeothermalPlant": GeothermalPlant # Added GeothermalPlant
+    "Geothermal Plant": GeothermalPlant,
 }
 
 def build_structure(colony_instance, building_class):

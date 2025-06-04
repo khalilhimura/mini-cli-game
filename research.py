@@ -10,7 +10,7 @@ RESEARCH_PROJECTS = {
         "name": "Geothermal Power",
         "cost": 250,
         "description": "Unlock the ability to construct Geothermal Power Plants for a significant energy boost.",
-        "unlocks_buildings": ["GeothermalPlant"],
+        "unlocks_buildings": ["Geothermal Plant"],
         "unlocks_upgrades": []
     },
     "improved_extraction": {

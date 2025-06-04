@@ -84,7 +84,7 @@ class TestResearchSystem(unittest.TestCase):
         self.assertIn("Solar Panel", self.colony.unlocked_buildings)
         self.assertIn("Hydroponics Farm", self.colony.unlocked_buildings)
         self.assertIn("Research Lab", self.colony.unlocked_buildings)
-        self.assertNotIn("GeothermalPlant", self.colony.unlocked_buildings)
+        self.assertNotIn("Geothermal Plant", self.colony.unlocked_buildings)
 
     def test_research_project_sufficient_research_points(self):
         self.colony.resources["ResearchPoints"] = 300
@@ -96,7 +96,7 @@ class TestResearchSystem(unittest.TestCase):
         success = self.colony.research_project(project_id)
         self.assertTrue(success)
         self.assertIn(project_id, self.colony.completed_research)
-        self.assertIn("GeothermalPlant", self.colony.unlocked_buildings)
+        self.assertIn("Geothermal Plant", self.colony.unlocked_buildings)
         self.assertEqual(self.colony.resources["ResearchPoints"], initial_rp - project_details["cost"])
         self.assertIn(f"Research complete: {project_details['name']}", self.colony.event_history[0])
 
@@ -109,7 +109,7 @@ class TestResearchSystem(unittest.TestCase):
         success = self.colony.research_project(project_id)
         self.assertFalse(success)
         self.assertNotIn(project_id, self.colony.completed_research)
-        self.assertNotIn("GeothermalPlant", self.colony.unlocked_buildings)
+        self.assertNotIn("Geothermal Plant", self.colony.unlocked_buildings)
         self.assertEqual(self.colony.resources["ResearchPoints"], initial_rp)
         self.assertIn(f"Not enough Research Points for '{project_details['name']}'", self.colony.event_history[0])
 
