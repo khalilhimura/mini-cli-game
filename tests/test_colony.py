@@ -69,9 +69,25 @@ class TestBuildingUpgrades(unittest.TestCase):
         self.colony.upgrade_building(0) # Upgrade to level 2
 
         cost_lvl_2_to_3 = mine.upgrade_cost() # mine instance is updated
-        
+
         self.assertGreater(cost_lvl_2_to_3["Minerals"], cost_lvl_1_to_2["Minerals"])
         self.assertGreater(cost_lvl_2_to_3["Energy"], cost_lvl_1_to_2["Energy"])
+
+    def test_upgrade_building_invalid_index(self):
+        mine = Mine()
+        self.colony.add_building(mine)
+        self.colony.resources["Minerals"] = 100
+        self.colony.resources["Energy"] = 100
+
+        success_negative = self.colony.upgrade_building(-1)
+        self.assertFalse(success_negative)
+        self.assertEqual(self.colony.buildings[0].level, 1)
+        self.assertIn("Invalid building index", self.colony.event_history[0])
+
+        self.colony.event_history.clear()
+        success_oob = self.colony.upgrade_building(5)
+        self.assertFalse(success_oob)
+        self.assertIn("Invalid building index", self.colony.event_history[0])
 
 
 class TestResearchSystem(unittest.TestCase):

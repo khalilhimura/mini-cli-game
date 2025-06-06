@@ -105,11 +105,13 @@ class Colony:
         return dict(bonuses)
 
     def upgrade_building(self, building_instance_index):
-        try:
-            building_to_upgrade = self.buildings[building_instance_index]
-        except IndexError:
+        if (
+            building_instance_index < 0
+            or building_instance_index >= len(self.buildings)
+        ):
             self.add_event_to_history("Error: Invalid building index for upgrade.")
             return False
+        building_to_upgrade = self.buildings[building_instance_index]
 
         current_upgrade_cost = building_to_upgrade.upgrade_cost()
 
