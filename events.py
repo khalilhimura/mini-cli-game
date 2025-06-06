@@ -80,6 +80,21 @@ class ProductionSpike(Event):
         
         return f"{self.name}: Systems surged, granting an instant bonus of {bonus_minerals:.1f} Minerals and {bonus_energy:.1f} Energy."
 
+class SolarFlare(Event):
+    def __init__(self):
+        super().__init__(
+            name="Solar Flare",
+            description="An intense solar flare disrupts colony systems."
+        )
+
+    def apply(self, colony):
+        lost_energy = float(random.randint(20, 40))
+        current = colony.get_resources().get("Energy", 0.0)
+        actual = min(lost_energy, current)
+        if actual > 0:
+            colony.resources["Energy"] = max(0.0, current - actual)
+        return f"{self.name}: Lost {actual:.1f} Energy due to radiation interference."
+
 class MeteorStrikeWarning(Event):
     def __init__(self):
         super().__init__(
@@ -108,7 +123,8 @@ class MeteorStrikeWarning(Event):
                     actual_energy_loss = min(lost_energy_amount, current_energy)
                     if actual_energy_loss > 0:
                         colony.resources["Energy"] = max(0.0, current_energy - actual_energy_loss)
-                    outcome_message += f"Defense failed! Lost {actual_energy_loss:.1f} additional Energy and some equipment was damaged."
+                    outcome_message += f"Defense failed! Lost {actual_energy_loss:.1f} additional Energy. "
+                    outcome_message += colony.damage_random_building()
             else:
                 outcome_message += "Not enough Energy to attempt defense! Bracing for impact instead. "
                 # Fall through to brace logic
@@ -117,7 +133,8 @@ class MeteorStrikeWarning(Event):
                 actual_mineral_loss = min(lost_minerals_amount, current_minerals)
                 if actual_mineral_loss > 0:
                     colony.resources["Minerals"] = max(0.0, current_minerals - actual_mineral_loss)
-                outcome_message += f"Lost {actual_mineral_loss:.1f} Minerals during impact."
+                outcome_message += f"Lost {actual_mineral_loss:.1f} Minerals during impact. "
+                outcome_message += colony.damage_random_building()
 
         elif choice_key == "brace":
             if random.random() < 0.30: # 30% no damage
@@ -128,6 +145,7 @@ class MeteorStrikeWarning(Event):
                 actual_mineral_loss = min(lost_minerals_amount, current_minerals)
                 if actual_mineral_loss > 0:
                     colony.resources["Minerals"] = max(0.0, current_minerals - actual_mineral_loss)
-                outcome_message += f"Braced for impact. Lost {actual_mineral_loss:.1f} Minerals. Some buildings might need repair (feature not yet implemented)."
+                outcome_message += f"Braced for impact. Lost {actual_mineral_loss:.1f} Minerals. "
+                outcome_message += colony.damage_random_building()
         
         return outcome_message
