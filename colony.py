@@ -1,4 +1,5 @@
 from collections import defaultdict
+import random
 from research import RESEARCH_PROJECTS # Import RESEARCH_PROJECTS
 
 class Colony:
@@ -63,6 +64,22 @@ class Colony:
 
     def get_buildings(self):
         return self.buildings
+
+    def damage_random_building(self):
+        """Randomly damages one of the colony's buildings.
+        If the selected building is level 1 it is destroyed.
+        Returns a short description of the damage.
+        """
+        if not self.buildings:
+            return "No buildings to damage."
+
+        building = random.choice(self.buildings)
+        if building.level > 1:
+            building.level -= 1
+            return f"{building.name} damaged and downgraded to level {building.level}."
+        else:
+            self.buildings.remove(building)
+            return f"{building.name} destroyed."
 
     def has_enough_resources(self, cost_dict):
         for resource_name, required_amount in cost_dict.items():

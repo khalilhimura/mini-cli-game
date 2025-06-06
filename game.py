@@ -3,7 +3,7 @@ import os # For checking file existence
 import random # For event triggering
 from colony import Colony
 from buildings import Mine, SolarPanel, HydroponicsFarm, ResearchLab, GeothermalPlant # Added GeothermalPlant
-from events import Event, MinorResourceBoost, SmallResourceDrain, ProductionSpike, MeteorStrikeWarning
+from events import Event, MinorResourceBoost, SmallResourceDrain, ProductionSpike, MeteorStrikeWarning, SolarFlare
 
 # Base per-second production rates
 BASE_MINERALS_PER_SECOND = 1.0
@@ -235,7 +235,7 @@ def load_game(filename="savegame.json"):
         # print(f"An unexpected error occurred while loading the game: {e}") # CLI print
         return None
 
-AVAILABLE_EVENT_CLASSES = [MinorResourceBoost, SmallResourceDrain, ProductionSpike, MeteorStrikeWarning]
+AVAILABLE_EVENT_CLASSES = [MinorResourceBoost, SmallResourceDrain, ProductionSpike, SolarFlare, MeteorStrikeWarning]
 
 def trigger_random_event(colony_instance, available_event_classes):
     """
